@@ -15,6 +15,7 @@ zeropad1d_config_template = """struct config{index} : nnet::padding1d_config {{
 zeropad2d_config_template = """struct config{index} : nnet::padding2d_config {{
     static const unsigned in_height = {in_height};
     static const unsigned in_width = {in_width};
+    static const unsigned data_transfer_out = {data_transfer_out};
     static const unsigned n_chan = {n_chan};
     static const unsigned out_height = {out_height};
     static const unsigned out_width = {out_width};
@@ -61,6 +62,7 @@ class ZeroPaddingFunctionTemplate(FunctionCallTemplate):
 resize_config_template = """struct config{index} : nnet::resize_config {{
     static const unsigned height = {in_height};
     static const unsigned width = {in_width};
+    static const unsigned data_transfer_out = {data_transfer_out};
     static const unsigned n_chan = {n_chan};
     static const unsigned new_height = {out_height};
     static const unsigned new_width = {out_width};
