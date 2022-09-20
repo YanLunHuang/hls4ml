@@ -251,11 +251,11 @@ void zeropad2d_cl_array(
 
 template<class data_T, class res_T, typename CONFIG_T>
 void zeropad2d_cl_switch(
-    hls::stream<data_T> data[CONFIG_T::data_transfer],
-    hls::stream<res_T>  res[CONFIG_T::data_transfer]
+    hls::stream<data_T> data[CONFIG_T::data_transfer_out],
+    hls::stream<res_T>  res[CONFIG_T::data_transfer_out]
 ) {
     #pragma HLS inline region
-    if(CONFIG_T::data_transfer == 1){
+    if(CONFIG_T::data_transfer_out == 1){
         zeropad2d_cl_single<data_T, res_T, CONFIG_T>(data, res);
     }else {
         zeropad2d_cl_array<data_T, res_T, CONFIG_T>(data, res);
