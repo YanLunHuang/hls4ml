@@ -142,8 +142,8 @@ void relu_array(hls::stream<data_T> data[CONFIG_T::n_chan], hls::stream<res_T> r
 
 template<class data_T, class res_T, typename CONFIG_T>
 void relu_switch(
-    hls::stream<data_T> data[CONFIG_T::data_transfer],
-    hls::stream<res_T>  res[CONFIG_T::data_transfer]
+    hls::stream<data_T> data[CONFIG_T::data_transfer_out],
+    hls::stream<res_T>  res[CONFIG_T::data_transfer_out]
 ) {
     #pragma HLS inline region
     if(CONFIG_T::data_transfer_out == 1){
@@ -726,7 +726,7 @@ void leaky_relu_array(hls::stream<data_T> data[CONFIG_T::n_chan], data_T alpha, 
 }
 
 template<class data_T, class res_T, typename CONFIG_T>
-void leaky_relu_switch(hls::stream<data_T> data[CONFIG_T::data_transfer], data_T alpha, hls::stream<res_T> res[CONFIG_T::data_transfer]) {
+void leaky_relu_switch(hls::stream<data_T> data[CONFIG_T::data_transfer_out], data_T alpha, hls::stream<res_T> res[CONFIG_T::data_transfer_out]) {
     #pragma HLS inline region
     if(CONFIG_T::data_transfer_out == 1){
         leaky_relu_single<data_T, res_T, CONFIG_T>(data, alpha, res);
