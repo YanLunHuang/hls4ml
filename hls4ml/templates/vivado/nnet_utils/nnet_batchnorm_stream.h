@@ -181,13 +181,13 @@ void normalize_array(
 
 template<class data_T, class res_T, typename CONFIG_T>
 void normalize_switch(
-    hls::stream<data_T> data[CONFIG_T::data_transfer],
-    hls::stream<res_T>  res[CONFIG_T::data_transfer],
+    hls::stream<data_T> data[CONFIG_T::data_transfer_out],
+    hls::stream<res_T>  res[CONFIG_T::data_transfer_out],
     typename CONFIG_T::scale_t scale[CONFIG_T::n_in],
     typename CONFIG_T::bias_t  bias[CONFIG_T::n_in]
 ) {
     #pragma HLS inline region
-    if(CONFIG_T::data_transfer == 1){
+    if(CONFIG_T::data_transfer_out == 1){
         normalize_single<data_T, res_T, CONFIG_T>(data, res, scale, bias);
     }else {
         normalize_array<data_T, res_T, CONFIG_T>(data, res, scale, bias);
