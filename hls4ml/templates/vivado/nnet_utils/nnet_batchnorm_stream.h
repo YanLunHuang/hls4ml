@@ -126,7 +126,7 @@ void normalize_single(
             } else {
                 norm_index = i % CONFIG_T::n_filt;
             }
-            res_T out_data = product_dense<data_T, typename CONFIG_T::scale_t,res_T>(in_data, scale[norm_index]) + bias[norm_index];
+            res_T out_data = product<data_T, typename CONFIG_T::scale_t,res_T>(in_data, scale[norm_index]) + bias[norm_index];
             res[0].write(out_data);
     }
 }
@@ -168,7 +168,7 @@ void normalize_array(
                 norm_index = j % CONFIG_T::n_filt;
             }
             
-            out_data[j] = product_dense<data_T, typename CONFIG_T::scale_t,res_T>(in_data[j], scale[norm_index]) + bias[norm_index];
+            out_data[j] = product<data_T, typename CONFIG_T::scale_t,res_T>(in_data[j], scale[norm_index]) + bias[norm_index];
         }
         
         for(int j=0; j < CONFIG_T::n_filt; j++){
