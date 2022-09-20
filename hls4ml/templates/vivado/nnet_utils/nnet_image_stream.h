@@ -190,11 +190,11 @@ void resize_nearest_array(
 
 template <class data_T, typename CONFIG_T>
 void resize_nearest_switch(
-    hls::stream<data_T> image[CONFIG_T::data_transfer],
-    hls::stream<data_T>  resized[CONFIG_T::data_transfer]
+    hls::stream<data_T> image[CONFIG_T::data_transfer_out],
+    hls::stream<data_T>  resized[CONFIG_T::data_transfer_out]
 ) {
     #pragma HLS inline region
-    if(CONFIG_T::data_transfer == 1){
+    if(CONFIG_T::data_transfer_out == 1){
         resize_nearest_single<data_T, CONFIG_T>(image, resized);
     }else {
         resize_nearest_array<data_T, CONFIG_T>(image, resized);
