@@ -33,6 +33,7 @@ pooling2d_config_template = """struct config{index} : nnet::pooling2d_config {{
 
     static const unsigned filt_height = pool_height;
     static const unsigned filt_width = pool_width;
+    static const unsigned data_transfer_out = {data_transfer_out};
     static const unsigned n_chan = n_filt;
 
     static const unsigned out_height = {out_height};
