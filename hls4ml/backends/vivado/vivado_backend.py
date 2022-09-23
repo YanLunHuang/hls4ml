@@ -32,7 +32,7 @@ class VivadoBackend(FPGABackend):
             # for array single conversion
             # n_chan_in is euqal to n_chan_out for these layers
             BatchNormalization: [Attribute('data_transfer_out', default=1)],
-            Activation: [Attribute('data_transfer_out', default=1)],
+            Activation: [Attribute('data_transfer_out', default=1), Attribute('n_chan', default=1)],
             ZeroPadding2D: [Attribute('data_transfer_out', default=1)],
             Pooling2D: [Attribute('data_transfer_out', default=1)],
             Resize: [Attribute('data_transfer_out', default=1)],
@@ -272,6 +272,7 @@ class VivadoBackend(FPGABackend):
         
         data_transfer_out = 1 if n_chan >= 64 else n_chan        
         layer.set_attr('data_transfer_out', data_transfer_out)
+        layer.set_attr('n_chan', n_chan)       
         # ---------------------------------------------------------------------------------------------
 
     @layer_optimizer(Softmax)
