@@ -232,38 +232,25 @@ void cnnshift_apshiftreg(
 }
 
 template<class data_T, class res_T, typename CONFIG_T>
-void cnnshift_arr(
-    data_T data[CONFIG_T::n_chan],
-    data_T layer_in_row[CONFIG_T::in_width+CONFIG_T::pad_left+CONFIG_T::pad_right][(CONFIG_T::filt_height)-1][CONFIG_T::n_chan],
-    data_T output[(CONFIG_T::filt_height*CONFIG_T::filt_width)*(CONFIG_T::n_chan)]) {   
-
+  void cnnshift_arr(data_T data[CONFIG_T::n_chan],
+            ap_shift_reg<data_T, (CONFIG_T::in_width+CONFIG_T::pad_left+CONFIG_T::pad_right)> layer_in_row[(CONFIG_T::filt_height)-1][CONFIG_T::n_chan],
+            data_T output[(CONFIG_T::filt_height*CONFIG_T::filt_width)*(CONFIG_T::n_chan)]) { 
+  
+    #pragma HLS PIPELINE
     const static int rowsize = (CONFIG_T::in_width+CONFIG_T::pad_left+CONFIG_T::pad_right);
     
     data_T tmpinput[CONFIG_T::filt_height][CONFIG_T::n_chan];
-    // #pragma HLS ARRAY_RESHAPE variable=tmpinput complete dim=0
+    #pragma HLS ARRAY_RESHAPE variable=tmpinput complete dim=0
     
-    CnnShiftLoop2:
     for(int i0 = 0; i0 < CONFIG_T::n_chan; i0++) {
-    // #pragma HLS UNROLL
-        tmpinput[CONFIG_T::filt_height-1][i0] = data[i0];
-        
-        for(unsigned i1 = 1; i1 < CONFIG_T::filt_height; i1++) {
-        // #pragma HLS UNROLL
-            data_T tmp1 = tmpinput[CONFIG_T::filt_height-i1][i0];
-            
-            //POP from Linebuffer
-            data_T tmp = layer_in_row[0][i1-1][i0];
-            
-            //SHIFT Linebuffer
-            for(unsigned i2 = 0; i2 < rowsize-1; i2++) {
-                layer_in_row[i2][i1-1][i0] = layer_in_row[i2+1][i1-1][i0];
-            }
-            
-            //PUSH into Linebuffer
-            layer_in_row[rowsize-1][i1-1][i0]=tmp1;
-
-            tmpinput[CONFIG_T::filt_height-i1-1][i0] = tmp;
-        }
+      #pragma HLS UNROLL
+      tmpinput[CONFIG_T::filt_height-1][i0] = data[i0];
+      for(unsigned i1 = 1; i1 < CONFIG_T::filt_height; i1++) {
+        #pragma HLS UNROLL
+    data_T tmp1      = tmpinput[CONFIG_T::filt_height-i1][i0];
+    data_T tmp       = layer_in_row[i1-1][i0].shift(tmp1);
+    tmpinput[CONFIG_T::filt_height-i1-1][i0] = tmp;
+      }
     }
     shift_right_small<data_T,res_T,CONFIG_T>(tmpinput,output);
 }
