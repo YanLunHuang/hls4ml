@@ -852,7 +852,7 @@ template<class data_T, class res_T, typename CONFIG_T>
   }
   
 template<class data_T, class res_T, typename CONFIG_T>
-  void pooling_switch(
+  void pooling2d_cl_switch(
             hls::stream<data_T> data[CONFIG_T::data_transfer_out],
             hls::stream<res_T>  res[CONFIG_T::data_transfer_out]
 ) { 
