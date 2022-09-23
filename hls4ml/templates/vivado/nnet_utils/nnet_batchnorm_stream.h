@@ -113,7 +113,7 @@ void normalize_single(
 
     constexpr unsigned multiplier_limit = DIV_ROUNDUP(CONFIG_T::n_in, CONFIG_T::reuse_factor);
     constexpr unsigned ii = CONFIG_T::n_in / multiplier_limit;
-    CONFIG_T::template product<data_T, typename CONFIG_T::scale_t,res_T>::limit(multiplier_limit);
+    CONFIG_T::template product<data_T, typename CONFIG_T::scale_t>::limit(multiplier_limit);
 
     BatchNormLoop: for (int i = 0; i < CONFIG_T::n_in; i++) {
         #pragma HLS PIPELINE II=1
@@ -126,7 +126,7 @@ void normalize_single(
             } else {
                 norm_index = i % CONFIG_T::n_filt;
             }
-            res_T out_data = product<data_T, typename CONFIG_T::scale_t,res_T>(in_data, scale[norm_index]) + bias[norm_index];
+            res_T out_data = CONFIG_T::template product<data_T, typename CONFIG_T::scale_t>::product(in_data, scale[norm_index]) + bias[norm_index];
             res[0].write(out_data);
     }
 }
@@ -143,7 +143,7 @@ void normalize_array(
 
     constexpr unsigned multiplier_limit = DIV_ROUNDUP(CONFIG_T::n_in, CONFIG_T::reuse_factor);
     constexpr unsigned ii = CONFIG_T::n_in / multiplier_limit;
-    CONFIG_T::template product<data_T, typename CONFIG_T::scale_t, res_T>::limit(multiplier_limit);
+    CONFIG_T::template product<data_T, typename CONFIG_T::scale_t>::limit(multiplier_limit);
 
     data_T in_data[CONFIG_T::n_filt];
     #pragma HLS ARRAY_PARTITION variable=in_data complete
@@ -168,7 +168,7 @@ void normalize_array(
                 norm_index = j % CONFIG_T::n_filt;
             }
             
-            out_data[j] = product<data_T, typename CONFIG_T::scale_t,res_T>(in_data[j], scale[norm_index]) + bias[norm_index];
+            out_data[j] = CONFIG_T::template product<data_T, typename CONFIG_T::scale_t>::product(in_data[j], scale[norm_index]) + bias[norm_index];
         }
         
         for(int j=0; j < CONFIG_T::n_filt; j++){
