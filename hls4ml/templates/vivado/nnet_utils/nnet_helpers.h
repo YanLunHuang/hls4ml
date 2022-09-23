@@ -480,6 +480,37 @@ void fill_zero_ss(hls::stream<data_T> &data) {
     }
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//for switch
+template<class data_T, size_t SIZE1, size_t SIZE2>
+void fill_zero_single(hls::stream<data_T> data[1]) {
+
+    data_T data_zero=0;
+    for(int i = 0; i < SIZE1 ; i++) {
+        data[0].write(data_zero);
+    }
+}
+template<class data_T, size_t SIZE1, size_t SIZE2>
+void fill_zero_array(hls::stream<data_T> data[SIZE2]) {
+
+    data_T data_zero=0;
+    for(int i = 0; i < SIZE1/SIZE2 ; i++) {
+        for(int j = 0; j < SIZE2 ; j++) {
+            data[j].write(data_zero);
+        }
+    }
+}
+template<class data_T, size_t SIZE1, size_t SIZE2>
+void fill_zero_switch(hls::stream<data_T> data[SIZE2]) {
+    if(SIZE2==1){
+        fill_zero_single<data_T, SIZE1, SIZE2>(data);
+    }else {
+        fill_zero_array<data_T, SIZE1, SIZE2>(data);
+    }
+}
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
 template <class dataType, unsigned int nrows>
 int read_file_1D(const char * filename, dataType data[nrows])
 {
