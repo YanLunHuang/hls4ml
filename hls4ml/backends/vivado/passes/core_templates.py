@@ -68,7 +68,7 @@ batchnorm_config_template = """struct config{index} : nnet::batchnorm_config {{
     using product = nnet::product::{product_type}<x_T, y_T>;
 }};\n"""
 
-batchnorm_function_template = 'nnet::normalize_ss<{input_t}, {output_t}, {config}>({input}, {output}, {scale}, {bias});'
+batchnorm_function_template = 'nnet::normalize_switch<{input_t}, {output_t}, {config}>({input}, {output}, {scale}, {bias});'
 
 batchnorm_include_list = ['nnet_utils/nnet_batchnorm.h', 'nnet_utils/nnet_batchnorm_stream.h']
 
@@ -120,8 +120,8 @@ softmax_config_template = """struct {type}_config{index} : nnet::activ_config {{
     typedef {inv_table_t.name} inv_table_t;
 }};\n"""
 
-activ_function_template = 'nnet::{activation}_ss<{input_t}, {output_t}, {config}>({input}, {output});'
-param_activ_function_template = 'nnet::{activation}_ss<{input_t}, {output_t}, {config}>({input}, {param}, {output});'
+activ_function_template = 'nnet::{activation}_switch<{input_t}, {output_t}, {config}>({input}, {output});'
+param_activ_function_template = 'nnet::{activation}_switch<{input_t}, {output_t}, {config}>({input}, {param}, {output});'
 
 activ_include_list = ['nnet_utils/nnet_activation.h', 'nnet_utils/nnet_activation_stream.h']
 
