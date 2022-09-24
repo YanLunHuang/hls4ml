@@ -178,7 +178,7 @@ void conv_2d_encoded_cl_ss(
 template<class data_T, class res_T, typename CONFIG_T>
 void shift_right_small(
     data_T input[CONFIG_T::filt_height][CONFIG_T::n_chan],
-    res_T  data[CONFIG_T::filt_width   * CONFIG_T::filt_height * CONFIG_T::n_chan]) { 
+    data_T  data[CONFIG_T::filt_width   * CONFIG_T::filt_height * CONFIG_T::n_chan]) { 
     #pragma HLS inline
     
     //Shift Right Window Buffer
