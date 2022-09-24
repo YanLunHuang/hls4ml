@@ -106,7 +106,6 @@ class VivadoWriter(Writer):
         fout = open('{}/firmware/{}.cpp'.format(model.config.get_output_dir(), model.config.get_project_name()),'w')
 
         model_inputs = model.get_input_variables()
-        print(model_inputs[0].shape[2])
         model_outputs = model.get_output_variables()
         model_brams = [var for var in model.get_weight_variables() if var.storage.lower() == 'bram']
 
