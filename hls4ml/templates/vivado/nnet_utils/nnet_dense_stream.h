@@ -72,15 +72,24 @@ void dense_ss(
       typename CONFIG_T::weight_t weights[CONFIG_T::n_in*CONFIG_T::n_out],
       typename CONFIG_T::bias_t   biases[CONFIG_T::n_out]) {
       
-      const int block_factor = DIV_ROUNDUP(CONFIG_T::n_out, CONFIG_T::reuse_factor);
+      // Check the validation of the reuse factor
+      const int reuse = (CONFIG_T::reuse_factor >= CONFIG_T::n_out) ? CONFIG_T::n_out : CONFIG_T::reuse_factor;
+      if(CONFIG_T::reuse_factor > CONFIG_T::n_out){
+          std::cout <<"Change the reuse factor in dense_ss to max value "<<CONFIG_T::n_out<<std::endl;
+      }
+      else {
+          assert((CONFIG_T::n_out % reuse == 0) && "The current reuse factor is not allowed");
+      }
+      
+      const int block_factor = DIV_ROUNDUP(CONFIG_T::n_out,reuse);
       #pragma HLS ARRAY_RESHAPE variable=weights block factor=CONFIG_T::n_out
       #pragma HLS ARRAY_PARTITION variable=biases complete
       
-      typename CONFIG_T::accum_t acc[block_factor][CONFIG_T::reuse_factor];
+      typename CONFIG_T::accum_t acc[block_factor][reuse];
       #pragma HLS ARRAY_PARTITION variable=acc complete dim=0
       
       InitAccum:
-      for (int iacc = 0; iacc < CONFIG_T::reuse_factor; iacc++) {
+      for (int iacc = 0; iacc < reuse; iacc++) {
           #pragma HLS UNROLL
           for (int iacc2 = 0; iacc2 < block_factor; iacc2++) {
             #pragma HLS UNROLL
@@ -89,9 +98,9 @@ void dense_ss(
       }
     
      for(int i_in = 0; i_in < CONFIG_T::n_in; i_in++) {
-        #pragma HLS PIPELINE II=CONFIG_T::reuse_factor
+        #pragma HLS PIPELINE II=reuse
         data_T tmpdata = data[0].read();
-        for (int iacc = 0; iacc < CONFIG_T::reuse_factor; iacc++) {
+        for (int iacc = 0; iacc < reuse; iacc++) {
           #pragma HLS UNROLL
           for (int iacc2 = 0; iacc2 < block_factor; iacc2++) {
             #pragma HLS UNROLL
@@ -100,7 +109,7 @@ void dense_ss(
           }
       }
      }
-     ResWrite:for (int iacc = 0; iacc < CONFIG_T::reuse_factor; iacc++) {
+     ResWrite:for (int iacc = 0; iacc < reuse; iacc++) {
           #pragma HLS UNROLL
           for (int iacc2 = 0; iacc2 < block_factor; iacc2++) {
             #pragma HLS UNROLL
