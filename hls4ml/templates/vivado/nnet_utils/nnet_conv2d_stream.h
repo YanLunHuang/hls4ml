@@ -389,7 +389,7 @@ void conv_2d_large_cl_nopad_pad_s2s(
     #pragma HLS ARRAY_RESHAPE variable=tmpdata complete
 
     static data_T layer_in[CONFIG_T::filt_height*CONFIG_T::filt_width*CONFIG_T::n_chan];
-    if(data_T::width*CONFIG_T::filt_height*CONFIG_T::filt_width*CONFIG_T::n_chan >= 65536){
+    if(data_T::width*CONFIG_T::filt_height*CONFIG_T::filt_width*CONFIG_T::n_chan >= 18432){// 3*3*128*16
         #pragma HLS ARRAY_RESHAPE variable=layer_in block factor=CONFIG_T::n_chan
     }
     else {
@@ -475,7 +475,7 @@ void conv_2d_large_cl_nopad_pad_s2a(
     #pragma HLS ARRAY_RESHAPE variable=tmpdata complete
 
     static data_T layer_in[CONFIG_T::filt_height*CONFIG_T::filt_width*CONFIG_T::n_chan];
-    if(data_T::width*CONFIG_T::filt_height*CONFIG_T::filt_width*CONFIG_T::n_chan >= 65536){
+    if(data_T::width*CONFIG_T::filt_height*CONFIG_T::filt_width*CONFIG_T::n_chan >= 18432){// 3*3*128*16
         #pragma HLS ARRAY_RESHAPE variable=layer_in block factor=CONFIG_T::n_chan
     }
     else {
@@ -565,7 +565,7 @@ void conv_2d_large_cl_nopad_pad_a2a(
     #pragma HLS ARRAY_RESHAPE variable=tmpdata complete
 
     static data_T layer_in[CONFIG_T::filt_height*CONFIG_T::filt_width*CONFIG_T::n_chan];
-    if(data_T::width*CONFIG_T::filt_height*CONFIG_T::filt_width*CONFIG_T::n_chan >= 65536){
+    if(data_T::width*CONFIG_T::filt_height*CONFIG_T::filt_width*CONFIG_T::n_chan >= 18432){// 3*3*128*16
         #pragma HLS ARRAY_RESHAPE variable=layer_in block factor=CONFIG_T::n_chan
     }
     else {
@@ -655,7 +655,7 @@ void conv_2d_large_cl_nopad_pad_a2s(
     #pragma HLS ARRAY_RESHAPE variable=tmpdata complete
 
     static data_T layer_in[CONFIG_T::filt_height*CONFIG_T::filt_width*CONFIG_T::n_chan];
-    if(data_T::width*CONFIG_T::filt_height*CONFIG_T::filt_width*CONFIG_T::n_chan >= 65536){
+    if(data_T::width*CONFIG_T::filt_height*CONFIG_T::filt_width*CONFIG_T::n_chan >= 18432){// 3*3*128*16
         #pragma HLS ARRAY_RESHAPE variable=layer_in block factor=CONFIG_T::n_chan
     }
     else {
