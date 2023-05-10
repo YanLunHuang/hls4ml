@@ -3,6 +3,7 @@ from qkeras.quantizers import get_quantizer
 from hls4ml.converters.keras.convolution import parse_conv1d_layer, parse_conv2d_layer
 from hls4ml.converters.keras.core import parse_batchnorm_layer, parse_dense_layer
 from hls4ml.converters.keras_to_hls import keras_handler, parse_default_keras_layer
+from hls4ml.converters.keras.recurrent import parse_rnn_layer
 from hls4ml.model.types import FixedPrecisionType, QKerasBinaryQuantizer, QKerasPO2Quantizer, QKerasQuantizer
 
 
@@ -17,6 +18,33 @@ def get_quantizer_from_config(keras_layer, quantizer_var):
     else:
         return QKerasQuantizer(quantizer_config)
 
+@keras_handler('QGRU')
+def parse_qgru_layer(keras_layer, input_names, input_shapes, data_reader):
+
+    layer, output_shape = parse_rnn_layer(keras_layer, input_names, input_shapes, data_reader)
+    if 'class_name' in keras_layer['config']['recurrent_activation'].keys():
+        if 'quantized' in keras_layer['config']['recurrent_activation']['class_name']:
+            layer['recurrent_activation_quantizer'] = keras_layer['config']['recurrent_activation']
+            layer['recurrent_activation'] = keras_layer['config']['recurrent_activation']['class_name'].replace('quantized_', 'hard_')
+    if 'class_name' in keras_layer['config']['activation'].keys():
+        if 'quantized' in keras_layer['config']['activation']['class_name']:
+            layer['activation_quantizer'] = keras_layer['config']['activation']
+            layer['activation'] = keras_layer['config']['activation']['class_name'].replace('quantized_', 'hard_')
+    layer['state_quantizer'] = get_quantizer_from_config(keras_layer, 'state')
+    layer['recurrent_bias_quantizer'] = get_quantizer_from_config(keras_layer, 'recurrent')
+    layer['recurrent_weight_quantizer'] = get_quantizer_from_config(keras_layer, 'recurrent')
+    layer['weight_quantizer'] = get_quantizer_from_config(keras_layer, 'kernel')
+    if keras_layer['config']['bias_quantizer'] is not None:
+        layer['bias_quantizer'] = get_quantizer_from_config(keras_layer, 'bias')
+    else:
+        layer['bias_quantizer'] = None
+
+    layer['slope'] = 0.5  # the default values in QKeras
+    layer['shift'] = 0.5
+    # Quartus seems to have trouble if the width is 1.
+    layer['slope_prec'] = FixedPrecisionType(width=2, integer=0, signed=False)
+    layer['shift_prec'] = FixedPrecisionType(width=2, integer=0, signed=False)
+    return layer, output_shape
 
 @keras_handler('QDense')
 def parse_qdense_layer(keras_layer, input_names, input_shapes, data_reader):
@@ -49,7 +77,6 @@ def parse_qconv_layer(keras_layer, input_names, input_shapes, data_reader):
 
     return layer, output_shape
 
-
 @keras_handler('QActivation')
 def parse_qactivation_layer(keras_layer, input_names, input_shapes, data_reader):
     assert keras_layer['class_name'] == 'QActivation'
@@ -63,7 +90,9 @@ def parse_qactivation_layer(keras_layer, input_names, input_shapes, data_reader)
         'binary',
         'ternary',
     ]
-
+    import pprint
+    print('keras layer config-----------------')
+    pprint.pprint(keras_layer)
     layer = parse_default_keras_layer(keras_layer, input_names)
 
     activation_config = keras_layer['config']['activation']
@@ -119,6 +148,7 @@ def parse_qactivation_layer(keras_layer, input_names, input_shapes, data_reader)
         layer['activation'] = activation_config['class_name'].replace('quantized_', '')
 
     layer['activation_quantizer'] = activation_config
+    pprint.pprint(layer)
     return layer, [shape for shape in input_shapes[0]]
 
 

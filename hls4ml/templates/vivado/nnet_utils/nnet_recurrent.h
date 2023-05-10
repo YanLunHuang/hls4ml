@@ -333,8 +333,8 @@ void gru(bool reset_state, data_T data[CONFIG_T::n_in], res_T h_newstate[CONFIG_
     typename CONFIG_T::accum_t tmpres[CONFIG_T::n_state * 3];
     typename CONFIG_T::accum_t tmpres_state_zr[CONFIG_T::n_state * 3];
     typename CONFIG_T::accum_t tmpres_state_h[CONFIG_T::n_state];
-    typename CONFIG_T::accum_t tmpres_zr[CONFIG_T::n_state * 2];   // activated i,f,o matrices (keras notation)
-    typename CONFIG_T::accum_t tmpres_h[CONFIG_T::n_state];        // activated c-matrix (keras notation)
+    res_T tmpres_zr[CONFIG_T::n_state * 2];   // activated i,f,o matrices (keras notation)
+    res_T tmpres_h[CONFIG_T::n_state];        // activated c-matrix (keras notation)
     typename CONFIG_T::accum_t inputacc_zr[CONFIG_T::n_state * 2]; // i,f,o matrices (keras notation)
     typename CONFIG_T::accum_t inputacc_h[CONFIG_T::n_state];      // c-matrix (keras notation)
 
@@ -360,7 +360,7 @@ void gru(bool reset_state, data_T data[CONFIG_T::n_in], res_T h_newstate[CONFIG_
     }
 
     // Activation function Sub layer -- START
-    CONFIG_T::template activation_recr<typename CONFIG_T::accum_t, typename CONFIG_T::weight_t,
+    CONFIG_T::template activation_recr<typename CONFIG_T::accum_t, res_T,
                                        typename CONFIG_T::ACT_CONFIG_GRU>::activation(inputacc_zr, tmpres_zr);
 
     // Activation function Sub layer -- END
@@ -379,7 +379,7 @@ void gru(bool reset_state, data_T data[CONFIG_T::n_in], res_T h_newstate[CONFIG_
     }
 
     // Now run the activation on this guy
-    CONFIG_T::template activation<typename CONFIG_T::accum_t, typename CONFIG_T::weight_t,
+    CONFIG_T::template activation<typename CONFIG_T::accum_t, res_T,
                                   typename CONFIG_T::ACT_CONFIG_T>::activation(inputacc_h, tmpres_h);
 
     // Mix the stat with the previous state
@@ -398,13 +398,15 @@ void gru_static(bool reset_state, data_T data[CONFIG_T::n_in], res_T h_newstate[
     // Initialize the state variable -- will maintain state between function calls
 
     static res_T h_state[CONFIG_T::n_state];
-    typename CONFIG_T::accum_t tmpres[CONFIG_T::n_state * 3];
-    typename CONFIG_T::accum_t tmpres_state_zr[CONFIG_T::n_state * 3];
+    typename CONFIG_T::accum_dense_t tmpres[CONFIG_T::n_state * 3];
+    typename CONFIG_T::accum_dense_t tmpres_state_zr[CONFIG_T::n_state * 3];
     typename CONFIG_T::accum_t tmpres_state_h[CONFIG_T::n_state];
-    typename CONFIG_T::accum_t tmpres_zr[CONFIG_T::n_state * 2];   // activated i,f,o matrices (keras notation)
-    typename CONFIG_T::accum_t tmpres_h[CONFIG_T::n_state];        // activated c-matrix (keras notation)
-    typename CONFIG_T::accum_t inputacc_zr[CONFIG_T::n_state * 2]; // i,f,o matrices (keras notation)
+    typename CONFIG_T::recr_act_t tmpres_zr[CONFIG_T::n_state * 2];   // activated i,f,o matrices (keras notation)
+    typename CONFIG_T::act_t tmpres_h[CONFIG_T::n_state];        // activated c-matrix (keras notation)
+    typename CONFIG_T::accum_dense_t inputacc_zr[CONFIG_T::n_state * 2]; // i,f,o matrices (keras notation)
     typename CONFIG_T::accum_t inputacc_h[CONFIG_T::n_state];      // c-matrix (keras notation)
+
+    typename CONFIG_T::state_t qh_state[CONFIG_T::n_state];
 
     #pragma HLS ARRAY_PARTITION variable=h_state         complete
     #pragma HLS ARRAY_PARTITION variable=h_newstate      complete
@@ -423,8 +425,13 @@ void gru_static(bool reset_state, data_T data[CONFIG_T::n_in], res_T h_newstate[
         }
     }
 
-    nnet::dense<data_T, typename CONFIG_T::accum_t, typename CONFIG_T::mult_config1>(data, tmpres, param, param_b);
-    nnet::dense<res_T, typename CONFIG_T::accum_t, typename CONFIG_T::mult_config2>(h_state, tmpres_state_zr, param_zr,
+    for (int i_h_state = 0; i_h_state < (CONFIG_T::n_state); i_h_state++) {
+        #pragma HLS UNROLL
+        qh_state[i_h_state] = (typename CONFIG_T::state_t) h_state[i_h_state];
+    }
+    
+    nnet::dense<data_T, typename CONFIG_T::accum_dense_t, typename CONFIG_T::mult_config1>(data, tmpres, param, param_b);
+    nnet::dense<typename CONFIG_T::state_t, typename CONFIG_T::accum_dense_t, typename CONFIG_T::mult_config2>(qh_state, tmpres_state_zr, param_zr,
                                                                                     param_br);
 
     // Adding the individual vectors from the multiplication of tmpres = Wx*x(t); tmpres_state_zr = Wh*h(t-1); tmpres
@@ -436,7 +443,7 @@ void gru_static(bool reset_state, data_T data[CONFIG_T::n_in], res_T h_newstate[
     }
 
     // Activation function Sub layer -- START
-    CONFIG_T::template activation_recr<typename CONFIG_T::accum_t, typename CONFIG_T::weight_t,
+    CONFIG_T::template activation_recr<typename CONFIG_T::accum_dense_t, typename CONFIG_T::recr_act_t,
                                        typename CONFIG_T::ACT_CONFIG_GRU>::activation(inputacc_zr, tmpres_zr);
 
     // Activation function Sub layer -- END
@@ -455,13 +462,13 @@ void gru_static(bool reset_state, data_T data[CONFIG_T::n_in], res_T h_newstate[
     }
 
     // Now run the activation on this guy
-    CONFIG_T::template activation<typename CONFIG_T::accum_t, typename CONFIG_T::weight_t,
+    CONFIG_T::template activation<typename CONFIG_T::accum_t, typename CONFIG_T::act_t,
                                   typename CONFIG_T::ACT_CONFIG_T>::activation(inputacc_h, tmpres_h);
 
     // Mix the stat with the previous state
     for (int iacc = 0; iacc < (CONFIG_T::n_state); iacc++) {
         #pragma HLS UNROLL
-        h_state[iacc] = (res_T)(tmpres_h[iacc] * (1 - tmpres_zr[iacc]) + h_state[iacc] * tmpres_zr[iacc]);
+        h_state[iacc] = (res_T)(tmpres_h[iacc] * (1 - tmpres_zr[iacc]) + qh_state[iacc] * tmpres_zr[iacc]);
         h_newstate[iacc] = h_state[iacc];
     }
 }

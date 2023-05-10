@@ -168,7 +168,9 @@ def config_from_keras_model(
         quantizers = {qname: qclass for qname, qclass in layer.items() if 'quantizer' in qname and qclass is not None}
         for qname, qclass in quantizers.items():
             pname = qname.lower().split('_quantizer')[0]
-            if pname == 'activation':
+            if cls_name == 'GRU' or cls_name == 'QGRU':
+                pass
+            elif pname == 'activation':
                 pname = 'result'
             if isinstance(qclass, dict):
                 precision = _get_precision_from_quantizer(qclass)

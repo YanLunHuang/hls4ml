@@ -112,7 +112,7 @@ class Layer:
                 config_value, str
             ):  # TODO maybe move this to __setitem__ of AttributeDict?
                 precision = self.model.config.backend.convert_precision_string(config_value)
-                config_value = NamedType(self.name + '_' + config_key, precision)
+                config_value = NamedType(self.name + config_key, precision)
             self.attributes[config_key] = config_value
 
         self.initialize()
@@ -244,7 +244,6 @@ class Layer:
 
         if precision is None:
             precision, _ = self.model.config.get_precision(self, var='result')
-
         out = TensorVariable(shape, dim_names, var_name=var_name, type_name=type_name, precision=precision, index=self.index)
 
         self.set_attr(out_name, out)
@@ -1097,6 +1096,13 @@ class GRU(Layer):
         TypeAttribute('bias'),
         TypeAttribute('recurrent_weight'),
         TypeAttribute('recurrent_bias'),
+        TypeAttribute('act_t'),
+        TypeAttribute('recr_act_t'),
+        #quantized activation and recurrent activation
+        Attribute('slope', value_type=float, default=0.2, configurable=False),
+        Attribute('shift', value_type=float, default=0.5, configurable=False),
+        TypeAttribute('slope_t'),
+        TypeAttribute('shift_t'),
     ]
 
     def initialize(self):
@@ -1107,7 +1113,6 @@ class GRU(Layer):
             shape = [self.attributes['n_out']]
             dims = [f'N_OUT_{self.index}']
 
-        self.add_output_variable(shape, dims)
 
         if self.attributes['return_state']:
             state_shape = [self.attributes['n_out']]
@@ -1120,17 +1125,47 @@ class GRU(Layer):
             )
 
         # weights
-        self.add_weights()
+        self.add_weights(quantizer=self.get_attr('weight_quantizer'))
 
         # recurrent weights
         recurrent_weight = self.model.get_weights_data(self.name, 'recurrent_kernel')
-        self.add_weights_variable(name='recurrent_weight', var_name='wr{index}', data=recurrent_weight)
+        self.add_weights_variable(name='recurrent_weight', quantizer=self.get_attr('recurrent_weight_quantizer'), var_name='wr{index}', data=recurrent_weight)
 
         # biases array is actually a 2-dim array of arrays (bias + recurrent bias)
         # both arrays have shape: n_units * 3 (z, r, h_cand)
         biases = self.model.get_weights_data(self.name, 'bias')
-        self.add_weights_variable(name='bias', var_name='b{index}', data=biases[0])
-        self.add_weights_variable(name='recurrent_bias', var_name='br{index}', data=biases[1])
+        self.add_weights_variable(name='bias', quantizer=self.get_attr('bias_quantizer'), var_name='b{index}', data=biases[0])
+        self.add_weights_variable(name='recurrent_bias', quantizer=self.get_attr('bias_quantizer'), var_name='br{index}', data=biases[1])
+
+        # 202230510 get all needed bits for calculating
+        at = self.attributes['activation_quantizer']['config']['bits']
+        rat = self.attributes['recurrent_activation_quantizer']['config']['bits']
+        si = self.attributes['state_quantizer'].hls_type.integer
+        st = self.attributes['state_quantizer'].hls_type.fractional + si
+        ri = self.attributes['recurrent_weight_quantizer'].hls_type.integer
+        rt = self.attributes['recurrent_weight_quantizer'].hls_type.fractional + ri
+        from math import log2, ceil
+        nadd = int(ceil(log2(max(self.attributes['n_in'], self.attributes['n_out']))))
+
+        act_prec = FixedPrecisionType(width=at, integer=1, signed=True, rounding_mode='RND_CONV', saturation_mode='SAT')
+        recr_act_prec = FixedPrecisionType(width=rat, integer=0, signed=False, rounding_mode='RND_CONV', saturation_mode='SAT')
+        state_prec = FixedPrecisionType(width=st, integer=si, signed=True, rounding_mode='RND_CONV', saturation_mode='SAT')
+        self.set_attr('act_t', NamedType(f'act{self.index}_t', precision=act_prec))
+        self.set_attr('recr_act_t', NamedType(f'recr_act{self.index}_t', precision=recr_act_prec))
+        self.set_attr('state_t', NamedType(f'state{self.index}_t', precision=state_prec))
+
+        slope_prec = self.get_attr('slope_prec', FixedPrecisionType(width=16, integer=0, signed=False))
+        shift_prec = self.get_attr('shift_prec', FixedPrecisionType(width=1, integer=0, signed=False))
+        index = self.get_attr('index')
+        slope_t = NamedType(f'slope{index}_t', precision=slope_prec)
+        shift_t = NamedType(f'shift{index}_t', precision=shift_prec)
+        self.set_attr('slope_t', slope_t)
+        self.set_attr('shift_t', shift_t)
+        self.add_output_variable(shape, dims, precision=FixedPrecisionType(width=rat+max(st,at)+1, integer=si+1, signed=True))
+        accum_dense_t = NamedType(f'accum_dense{index}_t', precision=FixedPrecisionType(width=st+rt+nadd, integer=si+ri+nadd, signed=True))
+        self.set_attr('accum_dense_t', accum_dense_t)
+        accum_t = NamedType(f'accum{index}_t', precision=FixedPrecisionType(width=st+rt+nadd+rat, integer=si+ri+nadd, signed=True))
+        self.set_attr('accum_t', accum_t)
 
 
 class GarNet(Layer):
@@ -1346,6 +1381,7 @@ layer_map = {
     'SimpleRNN': SimpleRNN,
     'LSTM': LSTM,
     'GRU': GRU,
+    'QGRU': GRU,
     'GarNet': GarNet,
     'GarNetStack': GarNetStack,
     # TensorFlow-specific layers:

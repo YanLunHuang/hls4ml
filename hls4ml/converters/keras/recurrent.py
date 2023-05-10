@@ -1,11 +1,12 @@
 from hls4ml.converters.keras_to_hls import keras_handler, parse_default_keras_layer
 
 rnn_layers = ['SimpleRNN', 'LSTM', 'GRU']
+qrnn_layers = ['QSimpleRNN', 'QLSTM', 'QGRU']
 
 
 @keras_handler(*rnn_layers)
 def parse_rnn_layer(keras_layer, input_names, input_shapes, data_reader):
-    assert keras_layer['class_name'] in rnn_layers
+    assert keras_layer['class_name'] in rnn_layers + qrnn_layers
 
     layer = parse_default_keras_layer(keras_layer, input_names)
 
